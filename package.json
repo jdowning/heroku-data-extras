@@ -1,0 +1,53 @@
+{
+  "name": "heroku-data-extras",
+  "version": "0.1.0",
+  "description": "Report Heroku Data add-ons and their operational status.",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jdowning/heroku-data-extras.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jdowning/heroku-data-extras/issues"
+  },
+  "homepage": "https://github.com/jdowning/heroku-data-extras#readme",
+  "type": "module",
+  "bin": {
+    "heroku": "./bin/run.js"
+  },
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "mocha --import=tsx 'test/**/*.test.ts'",
+    "lint": "eslint .",
+    "posttest": "npm run build"
+  },
+  "oclif": {
+    "bin": "heroku",
+    "dirname": "heroku",
+    "commands": "./dist/commands",
+    "topics": {
+      "data": {"description": "manage Heroku Data add-ons"}
+    }
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@heroku-cli/command": "^13.1.0",
+    "@oclif/core": "^4.0.0",
+    "ansis": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "mocha": "^11.0.0",
+    "nock": "^14.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
