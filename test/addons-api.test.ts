@@ -194,6 +194,21 @@ describe('AddonsApi', () => {
     })
   })
 
+  it('reports staging data add-ons using the standard data endpoints', async () => {
+    nock('https://api.heroku.com')
+      .get('/apps/example/addons').reply(200, [
+        {addon_service: {name: 'heroku-redis-staging'}, id: 'redis-id', name: 'redis-staging-1', plan: {name: 'heroku-redis-staging:mini'}},
+      ])
+      .get('/apps/example').reply(200, {id: 'app-id'})
+    nock('https://api.data.heroku.com')
+      .get('/data/maintenances/v1/apps/app-id').reply(200, {maintenances: []})
+      .get('/redis/v0/databases/redis-staging-1').reply(200, {addon_id: 'redis-id', version: '8.1'})
+
+    const report = await new AddonsApi(apiClient('api.heroku.com'), apiClient('api.data.heroku.com'), apiClient('shogun-meta.herokai.com')).report({app: 'example'})
+    assert.equal(report[0].service_slug, 'heroku-redis-staging')
+    assert.deepEqual(report[0].service_version, {lifecycle_status: 'supported', version: '8.1'})
+  })
+
   it('gets Advanced Meta Postgres metadata from the Meta control plane', async () => {
     nock('https://api.heroku.com')
       .get('/apps/example/addons').reply(200, [

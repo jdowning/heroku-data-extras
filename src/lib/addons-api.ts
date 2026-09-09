@@ -122,7 +122,7 @@ export class AddonsApi {
       this.getPlatform<PlatformAddon[]>(`/apps/${encodeURIComponent(app)}/addons`),
       this.getPlatform<{id: string}>(`/apps/${encodeURIComponent(app)}`),
     ])
-    const dataAddons = addons.filter(addon => DATA_ADDON_SERVICE_SLUGS.has(addon.addon_service.name))
+    const dataAddons = addons.filter(addon => DATA_ADDON_SERVICE_SLUGS.has(baseServiceSlug(addon.addon_service.name)))
     if (dataAddons.length === 0) return []
 
     const maintenanceByAddonId = await this.maintenances(appInfo.id, dataAddons)
@@ -181,7 +181,7 @@ export class AddonsApi {
 
   private addonPath(serviceSlug: string, addonName: string, addonId: string): string {
     const name = encodeURIComponent(addonName)
-    switch (serviceSlug.replace(/-meta$/, '')) {
+    switch (baseServiceSlug(serviceSlug)) {
       case 'heroku-postgresql': return `/client/v11/databases/${name}`
       case 'heroku-redis': return `/redis/v0/databases/${name}`
       case 'heroku-kafka': return `/data/kafka/v0/clusters/${encodeURIComponent(addonId)}`
@@ -214,7 +214,11 @@ function isAdvancedPostgres(addon: PlatformAddon): boolean {
 }
 
 function isPostgres(serviceSlug: string): boolean {
-  return serviceSlug === 'heroku-postgresql' || serviceSlug === 'heroku-postgresql-meta'
+  return baseServiceSlug(serviceSlug) === 'heroku-postgresql'
+}
+
+function baseServiceSlug(serviceSlug: string): string {
+  return serviceSlug.replace(/-(?:meta|staging)$/, '').replace(/-meta$/, '')
 }
 
 function planName(plan: string): string {
@@ -225,7 +229,7 @@ export function lifecycleStatus(serviceSlug: string, version: string | undefined
   if (!version) return 'unknown'
   const [major, minor] = version.split('.').map(Number)
   if (Number.isNaN(major)) return 'unknown'
-  const service = serviceSlug.replace(/-meta$/, '')
+  const service = baseServiceSlug(serviceSlug)
   if (service === 'heroku-kafka' && Number.isNaN(minor)) return 'unknown'
   switch (service) {
     case 'heroku-postgresql':
