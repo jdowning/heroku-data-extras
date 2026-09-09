@@ -1,13 +1,9 @@
-import {Args, Flags} from '@oclif/core'
+import {Flags} from '@oclif/core'
 import {APIClient, Command} from '@heroku-cli/command'
 import {AddonsApi, filterAddonsByLifecycle, formatAddonsTable, sortAddons} from '../../lib/addons-api.js'
 
 export default class DataReport extends Command {
-  public static description = 'report Heroku Postgres, Redis, and Kafka add-ons'
-
-  public static args = {
-    app: Args.string({description: 'app to report on', required: false}),
-  }
+  public static description = 'report Heroku Postgres, KVS, and Kafka add-ons with plan, version, lifecycle, and maintenance status'
 
   public static flags = {
     app: Flags.string({char: 'a', description: 'app to report on'}),
@@ -20,9 +16,9 @@ export default class DataReport extends Command {
   }
 
   public async run(): Promise<void> {
-    const {args, flags} = await this.parse(DataReport)
-    const app = flags.app ?? args.app
-    if (Boolean(app) === Boolean(flags.team)) this.error('Specify exactly one app or --team.')
+    const {flags} = await this.parse(DataReport)
+    const app = flags.app
+    if (Boolean(app) === Boolean(flags.team)) this.error('Specify exactly one of --app or --team.')
     if (flags.supported && flags.unsupported) this.error('Specify at most one of --supported or --unsupported.')
 
     const data = new APIClient(this.config)
