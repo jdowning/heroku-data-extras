@@ -12,6 +12,7 @@ export const DATA_ADDON_SERVICE_SLUGS = new Set([
 const ADVANCED_POSTGRES_PLANS = new Set(['advanced', 'advanced-private', 'advanced-shield'])
 const META_ADDON_SERVICE_SLUGS = new Set(['heroku-postgresql-meta', 'heroku-redis-meta', 'heroku-kafka-meta'])
 const TEAM_REPORT_CONCURRENCY = 5
+const PLATFORM_RETRY_DELAYS_MS = [100, 200, 400]
 
 type PlatformAddon = {
   addon_service: {name: string}
@@ -205,7 +206,15 @@ export class AddonsApi {
   }
 
   private async getPlatform<T>(path: string): Promise<T> {
-    return (await this.platform.get<T>(path, {headers: {accept: ACCEPT}})).body
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return (await this.platform.get<T>(path, {headers: {accept: ACCEPT}})).body
+      } catch (error) {
+        const delay = PLATFORM_RETRY_DELAYS_MS[attempt]
+        if (delay === undefined || !isTransientPlatformError(error)) throw error
+        await sleep(delay)
+      }
+    }
   }
 }
 
@@ -311,6 +320,14 @@ function errorStatus(error: unknown): number | null {
     'statusCode' in error.http && typeof error.http.statusCode === 'number') return error.http.statusCode
 
   return null
+}
+
+function isTransientPlatformError(error: unknown): boolean {
+  return [500, 502, 503, 504].includes(errorStatus(error) ?? 0)
+}
+
+function sleep(milliseconds: number): Promise<void> {
+  return new Promise(resolve => globalThis.setTimeout(resolve, milliseconds))
 }
 
 function errorMessage(error: unknown): string {

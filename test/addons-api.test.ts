@@ -19,6 +19,28 @@ function apiClient(host: string) {
 describe('AddonsApi', () => {
   afterEach(() => nock.cleanAll())
 
+  it('retries transient Platform API failures', async () => {
+    nock('https://api.heroku.com')
+      .get('/apps/example/addons').reply(504)
+      .get('/apps/example/addons').reply(200, [])
+      .get('/apps/example').reply(200, {id: 'app-id'})
+    nock('https://api.data.heroku.com')
+      .get('/data/maintenances/v1/apps/app-id').reply(404)
+
+    assert.deepEqual(await new AddonsApi(apiClient('api.heroku.com'), apiClient('api.data.heroku.com'), apiClient('shogun-meta.herokai.com')).report({app: 'example'}), [])
+  })
+
+  it('stops retrying after transient Platform API failures are exhausted', async () => {
+    nock('https://api.heroku.com')
+      .get('/apps/example/addons').times(4).reply(503)
+      .get('/apps/example').reply(200, {id: 'app-id'})
+
+    await assert.rejects(
+      () => new AddonsApi(apiClient('api.heroku.com'), apiClient('api.data.heroku.com'), apiClient('shogun-meta.herokai.com')).report({app: 'example'}),
+      error => (error as {statusCode?: number}).statusCode === 503,
+    )
+  })
+
   it('reports an app data add-on with version lifecycle and maintenance', async () => {
     nock('https://api.heroku.com')
       .get('/apps/example/addons').reply(200, [
